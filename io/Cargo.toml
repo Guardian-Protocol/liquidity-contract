@@ -1,0 +1,14 @@
+[package]
+name = "io"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gstd = { git = "https://github.com/gear-tech/gear.git", rev = "175f69b7" }
+gmeta = { git = "https://github.com/gear-tech/gear.git", rev = "175f69b7" }
+scale-info = { version = "2", default-features = false }
+parity-scale-codec = { version = "3", default-features = false }
