@@ -60,7 +60,7 @@ pub struct UserBalance {
 #[derive(TypeInfo, Default, Encode, Decode)]
 pub struct LiquidStakeState {
     pub owner: ActorId,
-    pub staking_token_address: ActorId,
+    pub gvara_token_address: ActorId,
     pub varatoken_total_staked: u128,
     pub initial_time: u64,
     pub total_time_protocol: u64,
