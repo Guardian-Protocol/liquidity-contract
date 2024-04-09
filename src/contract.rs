@@ -1,5 +1,5 @@
 use gstd::{collections::HashMap, exec, msg, ActorId};
-use io::{FTAction, FTEvent, LiquidStakeEvent, UserBalance};
+use io::{FTAction, FTEvent, LiquidStakeAction, LiquidStakeEvent, UserBalance};
 
 use crate::update_state;
 
@@ -7,6 +7,7 @@ use crate::update_state;
 pub struct LiquidStake {
     pub owner: ActorId,
     pub gvara_token_address: ActorId,
+    pub stash_account_address: ActorId,
     pub varatoken_total_staked: u128,
     pub initial_time: u64,
     pub total_time_protocol: u64,
@@ -17,10 +18,15 @@ pub struct LiquidStake {
 
 impl LiquidStake {
     pub async fn stake(&mut self, amount: u128) {
+        if msg::value() != amount {
+            panic!("The amount needs be equal to the value sent")
+        }
+
         self.add_liquidity(amount).await;
         self.gvara_transfer_to_user(amount).await;
 
         update_state();
+        let _ = msg::send(self.stash_account_address, LiquidStakeAction::Stake(amount), msg::value());
         let _ = msg::reply(LiquidStakeEvent::SuccessfullStake, 0);
     }
 
