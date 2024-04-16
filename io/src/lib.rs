@@ -69,6 +69,12 @@ pub struct LiquidStakeState {
     pub users: Vec<(ActorId, UserBalance)>,
 }
 
+#[derive(TypeInfo, Encode, Decode)]
+pub struct InitLiquidityCotract {
+    pub gvara_contract_address: ActorId,
+    pub stash_account_address: ActorId,
+}
+
 pub struct ContractMetadata;
 
 impl Metadata for ContractMetadata {

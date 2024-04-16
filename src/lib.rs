@@ -1,9 +1,9 @@
 #![no_std]
 use core::panic;
-use gstd::{exec, msg, ActorId};
+use gstd::{exec, msg};
 
 use contract::LiquidStake;
-use io::LiquidStakeState;
+use io::{InitLiquidityCotract, LiquidStakeState};
 
 pub mod contract;
 pub mod handler;
@@ -35,18 +35,19 @@ fn update_state() {
 
 #[no_mangle]
 extern "C" fn init() {
-    let ft_address: ActorId = msg::load().expect("Unable to decode message");
+    let init_config: InitLiquidityCotract = msg::load().expect("Unable to decode message");
+
+    if init_config.gvara_contract_address.is_zero() || init_config.stash_account_address.is_zero() {
+        panic!("Invalid address");
+    }
 
     let liquid_stake = LiquidStake {
         owner: msg::source(),
-        gvara_token_address: ft_address.clone(),
+        gvara_token_address: init_config.gvara_contract_address.clone(),
+        stash_account_address: init_config.stash_account_address.clone(),
         initial_time: exec::block_timestamp(),
         ..Default::default()
     };
-
-    if ft_address.is_zero() {
-        panic!("Invalid address");
-    }
 
     unsafe {
         LIQUID_STAKE = Some(liquid_stake);
@@ -55,7 +56,7 @@ extern "C" fn init() {
     unsafe {
         STATE = Some(LiquidStakeState {
             owner: msg::source(),
-            gvara_token_address: ft_address.clone(),
+            gvara_token_address: init_config.gvara_contract_address.clone(),
             initial_time: exec::block_timestamp(),
             ..Default::default()
         });
