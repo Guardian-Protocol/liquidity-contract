@@ -12,5 +12,9 @@ async fn main() {
         LiquidStakeAction::Stake(amount) => {
             liquid_stake.stake(amount).await;
         }
+        
+        LiquidStakeAction::Unestake(amount) => {
+            liquid_stake.unestake(amount).await;
+        }
     };
 }

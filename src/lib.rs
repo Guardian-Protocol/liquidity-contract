@@ -30,7 +30,7 @@ fn update_state() {
     state.total_time_protocol = liquid_stake.total_time_protocol;
     state.gvaratokens_reward_total = liquid_stake.gvaratokens_reward_total;
     state.distribution_time = liquid_stake.distribution_time;
-    state.users = liquid_stake.users.iter().map(|(k, v)| (*k, *v)).collect();
+    state.users = liquid_stake.users.iter().map(|(k, v)| (*k, v.clone())).collect();
 }
 
 #[no_mangle]

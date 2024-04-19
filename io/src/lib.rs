@@ -3,19 +3,23 @@ use gmeta::{In, InOut, Metadata, Out};
 use gstd::{ActorId, Decode, Encode, TypeInfo, Vec, prelude::*};
 
 pub type TransactionId = u64;
+pub type Tokens = u128;
 
 #[derive(Encode, Decode, Clone, Debug, TypeInfo)]
 pub enum LiquidStakeAction {
     Stake(u128),
+    Unestake(u128),
 }
 
 #[derive(Encode, Decode, TypeInfo)]
 pub enum LiquidStakeEvent {
     SuccessfullStake,
-    SuccessfullUnstake,
+    SuccessfullUnestake,
+    InsufficientBalance,
     TotalLocketBalance {
         total: u128,
     },
+    UserNotFound,
     StakeError,
 }
 
@@ -51,10 +55,17 @@ pub struct InitFT {
     pub ft_contract_address: ActorId,
 }
 
-#[derive(TypeInfo, Decode, Encode, Copy, Clone)]
+#[derive(TypeInfo, Decode, Encode, Clone, Copy)]
+pub struct Unestake {
+    pub amount: Tokens,
+    pub liberation_epoch: u32,
+}
+
+#[derive(TypeInfo, Decode, Encode, Clone)]
 pub struct UserBalance {
     pub user_total_vara_staked: u128,
-    pub user_total_gvaratokens: u128,
+    pub history_id_counter: u128,
+    pub unestake_history: Vec<(u128, Unestake)>
 }
 
 #[derive(TypeInfo, Default, Encode, Decode)]
