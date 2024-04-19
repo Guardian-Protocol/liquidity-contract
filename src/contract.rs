@@ -1,4 +1,4 @@
-use gstd::{collections::HashMap, exec, msg, ActorId};
+use gstd::{collections::HashMap, exec, format, msg, ActorId};
 use io::{FTAction, FTEvent, LiquidStakeAction, LiquidStakeEvent, UserBalance};
 
 use crate::update_state;
@@ -17,8 +17,9 @@ pub struct LiquidStake {
 }
 
 impl LiquidStake {
+
     pub async fn stake(&mut self, amount: u128) {
-        if msg::value() != amount {
+        if msg::value() != (amount * 1000000000000) {
             panic!("The amount needs be equal to the value sent")
         }
 
@@ -26,7 +27,13 @@ impl LiquidStake {
         self.gvara_transfer_to_user(amount).await;
 
         update_state();
-        let _ = msg::send(self.stash_account_address, LiquidStakeAction::Stake(amount), msg::value());
+        
+        let _ = msg::send(self.stash_account_address, format!("{{
+            \"type\": \"stake\",
+            \"amount\": {},
+            \"source\": \"{:?}\",
+            \"value\": {}
+        }}", amount, msg::source(), msg::value()), msg::value());
         let _ = msg::reply(LiquidStakeEvent::SuccessfullStake, 0);
     }
 
