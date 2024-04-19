@@ -8,7 +8,7 @@ authors.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gstd = { git = "https://github.com/gear-tech/gear.git", rev = "175f69b7" }
-gmeta = { git = "https://github.com/gear-tech/gear.git", rev = "175f69b7" }
+gstd = { git = "https://github.com/gear-tech/gear.git", rev = "v1.2.0" }
+gmeta = { git = "https://github.com/gear-tech/gear.git", rev = "v1.2.0" }
 scale-info = { version = "2", default-features = false }
 parity-scale-codec = { version = "3", default-features = false }

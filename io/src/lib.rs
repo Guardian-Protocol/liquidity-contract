@@ -78,7 +78,7 @@ pub struct InitLiquidityCotract {
 pub struct ContractMetadata;
 
 impl Metadata for ContractMetadata {
-    type Init = In<ActorId>;
+    type Init = In<InitLiquidityCotract>;
     type Handle = InOut<LiquidStakeAction, LiquidStakeEvent>;
     type Others = ();
     type Reply = ();
