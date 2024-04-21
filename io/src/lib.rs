@@ -3,24 +3,50 @@ use gmeta::{In, InOut, Metadata, Out};
 use gstd::{ActorId, Decode, Encode, TypeInfo, Vec, prelude::*};
 
 pub type TransactionId = u64;
-pub type Tokens = u128;
+pub type Gvara = u128;
+pub type Vara = u128;
 
 #[derive(Encode, Decode, Clone, Debug, TypeInfo)]
 pub enum LiquidStakeAction {
     Stake(u128),
     Unestake(u128),
+    UpdateUnestake(ActorId, u64, u32),
 }
 
 #[derive(Encode, Decode, TypeInfo)]
 pub enum LiquidStakeEvent {
+    Success,
     SuccessfullStake,
     SuccessfullUnestake,
-    InsufficientBalance,
+    StashMessage {
+        user: ActorId,
+        message_type: String,
+        amount: Gvara,
+        value: Vara,
+    },
     TotalLocketBalance {
         total: u128,
     },
-    UserNotFound,
     StakeError,
+}
+
+#[derive(Encode, Decode, Clone, TypeInfo)]
+pub enum StashAction {
+    StashMessage {
+        user: ActorId,
+        message_type: String,
+        amount: Gvara,
+        value: Vara,
+    },
+}
+
+#[derive(Encode, Decode, Clone, TypeInfo)]
+pub enum StashEvent {
+    UpdateUnestake{
+        user: ActorId,
+        days: u32,
+        era: u64,
+    },
 }
 
 #[derive(Debug, Decode, Encode, TypeInfo)]
@@ -57,8 +83,9 @@ pub struct InitFT {
 
 #[derive(TypeInfo, Decode, Encode, Clone, Copy)]
 pub struct Unestake {
-    pub amount: Tokens,
-    pub liberation_epoch: u32,
+    pub amount: Gvara,
+    pub liberation_era: u64,
+    pub liberation_days: u32,
 }
 
 #[derive(TypeInfo, Decode, Encode, Clone)]
@@ -84,6 +111,7 @@ pub struct LiquidStakeState {
 pub struct InitLiquidityCotract {
     pub gvara_contract_address: ActorId,
     pub stash_account_address: ActorId,
+    pub master_key: ActorId,
 }
 
 pub struct ContractMetadata;
@@ -92,7 +120,7 @@ impl Metadata for ContractMetadata {
     type Init = In<InitLiquidityCotract>;
     type Handle = InOut<LiquidStakeAction, LiquidStakeEvent>;
     type Others = ();
-    type Reply = ();
+    type Reply = InOut<String, StashEvent>;
     type Signal = ();
     type State = Out<LiquidStakeState>;
 }

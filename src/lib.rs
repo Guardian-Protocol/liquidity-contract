@@ -1,6 +1,6 @@
 #![no_std]
 use core::panic;
-use gstd::{exec, msg};
+use gstd::{exec, msg, ActorId};
 
 use contract::LiquidStake;
 use io::{InitLiquidityCotract, LiquidStakeState};
@@ -11,12 +11,18 @@ pub mod handler;
 static mut LIQUID_STAKE: Option<LiquidStake> = None;
 static mut STATE: Option<LiquidStakeState> = None;
 
+static mut MASTER_KEY: Option<ActorId> = None;
+
 fn liquid_stake_mut() -> &'static mut LiquidStake {
     unsafe { LIQUID_STAKE.get_or_insert(Default::default()) }
 }
 
 fn state_mut() -> &'static mut LiquidStakeState {
     unsafe { STATE.as_mut().unwrap_unchecked() }
+}
+
+fn master_key() -> ActorId {
+    unsafe { MASTER_KEY.unwrap_unchecked() }
 }
 
 fn update_state() {
@@ -51,6 +57,10 @@ extern "C" fn init() {
 
     unsafe {
         LIQUID_STAKE = Some(liquid_stake);
+    }
+
+    unsafe {
+        MASTER_KEY = Some(init_config.master_key.clone());
     }
 
     unsafe {

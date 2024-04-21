@@ -1,60 +1,81 @@
-use gstd::{collections::HashMap, exec, format, msg, ActorId, String, Vec};
-use io::{FTAction, FTEvent, LiquidStakeEvent, Tokens, Unestake, UserBalance};
+use core::any::Any;
+
+use gstd::ToOwned;
+use gstd::{collections::HashMap, exec, format, msg, ActorId, Encode, String, Vec};
+use io::{FTAction, FTEvent, Gvara, LiquidStakeAction, LiquidStakeEvent, StashAction, StashEvent, Unestake, UserBalance};
 
 use crate::update_state;
+use crate::master_key;
 
 #[derive(Default)]
 pub struct LiquidStake {
     pub owner: ActorId,
     pub gvara_token_address: ActorId,
     pub stash_account_address: ActorId,
-    pub varatoken_total_staked: Tokens,
+    pub varatoken_total_staked: Gvara,
     pub initial_time: u64,
     pub total_time_protocol: u64,
-    pub gvaratokens_reward_total: Tokens,
+    pub gvaratokens_reward_total: Gvara,
     pub distribution_time: u64,
     pub users: HashMap<ActorId, UserBalance>,
 }
 
 impl LiquidStake {
-    pub async fn stake(&mut self, amount: Tokens) {
+    pub async fn stake(&mut self, amount: Gvara) {
         if msg::value() != (amount * 1000000000000) {
             panic!("The amount needs be equal to the value sent")
         }
 
         self.add_liquidity(amount).await;
-        self.gvara_transfer_to_user(amount).await;
+        self.transfer_gvara(amount, exec::program_id(), msg::source()).await;
 
         update_state();
+
+        let stash_message: String = self.generate_json(amount, String::from("stake")).await;
         
-        let _ = msg::send(self.stash_account_address, self.generate_json(amount).await, msg::value());
+        let _ = msg::send(self.stash_account_address, stash_message, msg::value());
         let _ = msg::reply(LiquidStakeEvent::SuccessfullStake, 0);
     }
 
-    pub async fn unestake(&mut self, amount: Tokens) {
-        let source: ActorId = msg::source().clone();
+    pub async fn unestake(&mut self, amount: Gvara) {
+        let user = self.users.get(&msg::source()).expect("User not found");
 
-        if self.users.contains_key(&source) {
-            let user_balance = self.users.get(&source).unwrap().clone();
-
-            if user_balance.user_total_vara_staked >= amount {
-
-                self.gvara_transfer_to_contract(amount).await;
-                self.remove_liquidity(amount).await;
-
-                update_state();
-
-                let _ = msg::send(self.stash_account_address, self.generate_json(amount).await, 0);
-                let _ = msg::reply(LiquidStakeEvent::SuccessfullUnestake, 0);
-            } else {
-                let _ = msg::reply(LiquidStakeEvent::InsufficientBalance, 0);
-            }
-        } else {
-            let _ = msg::reply(LiquidStakeEvent::UserNotFound, 0);
+        if user.user_total_vara_staked < amount {
+            panic!("The amount to unestake is greater than the user's balance");
         }
+
+        self.transfer_gvara(amount, msg::source(), exec::program_id()).await;
+        self.remove_liquidity(amount).await;
+
+        update_state();
+
+        let stash_message: String = self.generate_json(amount, String::from("unestake")).await;
+        let _ = msg::send(self.stash_account_address, stash_message, 0);
+
+        let _ = msg::reply(LiquidStakeEvent::Success, 0);
     }
 
-    async fn add_liquidity(&mut self, amount: Tokens) {
+    pub async fn update_unestake(&mut self, user: ActorId, era: u64, days: u32) {
+        let account = msg::source();
+
+        // if account != master_key() {
+        //     panic!("Only the admin account can call this function");
+        // }
+
+        let user = self.users.get_mut(&user).expect("User not found");
+
+        for (_index, unestake) in user.unestake_history.iter_mut() {
+            if unestake.liberation_era == 0 {
+                unestake.liberation_era = era;
+                unestake.liberation_days = days;
+            }
+        }
+
+        update_state();
+        let _ = msg::reply(LiquidStakeEvent::Success, 0);
+    }
+
+    async fn add_liquidity(&mut self, amount: Gvara) {
         let source: ActorId = msg::source();
 
         let result: FTEvent = msg::send_for_reply_as::<FTAction, FTEvent>(
@@ -82,7 +103,7 @@ impl LiquidStake {
         };
     }
 
-    async fn remove_liquidity(&mut self, amount: Tokens) {
+    async fn remove_liquidity(&mut self, amount: Gvara) {
         let source: ActorId = msg::source();
 
         let result: FTEvent = msg::send_for_reply_as::<FTAction, FTEvent>(
@@ -100,7 +121,8 @@ impl LiquidStake {
                         balance.user_total_vara_staked -= amount.clone();
                         balance.unestake_history.push((balance.history_id_counter, Unestake {
                             amount: amount.clone(),
-                            liberation_epoch: 0
+                            liberation_era: 0,
+                            liberation_days: 0
                         }));
 
                         balance.history_id_counter += 1;
@@ -113,12 +135,10 @@ impl LiquidStake {
         };
     }
 
-    async fn gvara_transfer_to_user(&mut self, amount: Tokens) {
-        let source: ActorId = msg::source();
-
+    async fn transfer_gvara(&mut self, amount: Gvara, from: ActorId, to:ActorId) {
         let payload: FTAction = FTAction::Transfer {
-            from: exec::program_id(),
-            to: source.clone(),
+            from: from.clone(),
+            to: to.clone(),
             amount: amount.clone(),
         };
 
@@ -136,35 +156,12 @@ impl LiquidStake {
         };
     }
 
-    async fn gvara_transfer_to_contract(&mut self, amount: Tokens) {
-        let source: ActorId = msg::source();
-
-        let payload: FTAction = FTAction::Transfer { 
-            from: source.clone(), 
-            to: exec::program_id(), 
-            amount: amount.clone() 
-        };
-
-        let result: FTEvent = msg::send_for_reply_as::<FTAction, FTEvent>(
-            self.gvara_token_address, 
-            payload, 
-            0, 0,
-        ).expect("Error").await.expect("Unexpected error during sending transfer message");
-
-        match result {
-            FTEvent::Ok => { },
-            _  => {
-                msg::reply(LiquidStakeEvent::StakeError, 0).expect("Error during the reply");
-            },
-        };
-    }
-
-    async fn generate_json(&mut self, amount: Tokens) -> String {
+    async fn generate_json(&mut self, amount: Gvara, message_type: String) -> String {
         return format!("{{
-            \"type\": \"stake\",
+            \"type\": \"{}\",
             \"amount\": {},
             \"source\": \"{:?}\",
             \"value\": {}
-        }}", amount, msg::source().clone(), msg::value());
+        }}",message_type, amount, msg::source().clone(), msg::value());
     }
 }
