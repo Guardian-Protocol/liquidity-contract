@@ -1,17 +1,18 @@
 #![no_std]
 use core::panic;
-use gstd::{exec, msg, ActorId};
+use gstd::{exec, msg};
 
 use contract::LiquidStake;
-use io::{InitLiquidityCotract, LiquidStakeState};
+use io::{InitLiquidityCotract, LiquidStakeState, SecuredInformation};
 
 pub mod contract;
 pub mod handler;
+pub mod utils;
+pub mod ft_contract;
 
 static mut LIQUID_STAKE: Option<LiquidStake> = None;
 static mut STATE: Option<LiquidStakeState> = None;
-
-static mut MASTER_KEY: Option<ActorId> = None;
+static mut SECURED_INFORMATION: Option<SecuredInformation> = None;
 
 fn liquid_stake_mut() -> &'static mut LiquidStake {
     unsafe { LIQUID_STAKE.get_or_insert(Default::default()) }
@@ -21,8 +22,8 @@ fn state_mut() -> &'static mut LiquidStakeState {
     unsafe { STATE.as_mut().unwrap_unchecked() }
 }
 
-fn master_key() -> ActorId {
-    unsafe { MASTER_KEY.unwrap_unchecked() }
+fn secured_information() -> &'static SecuredInformation {
+    unsafe { SECURED_INFORMATION.as_ref().unwrap_unchecked() }
 }
 
 fn update_state() {
@@ -56,11 +57,12 @@ extern "C" fn init() {
     };
 
     unsafe {
-        LIQUID_STAKE = Some(liquid_stake);
-    }
-
-    unsafe {
-        MASTER_KEY = Some(init_config.master_key.clone());
+        SECURED_INFORMATION = Some(SecuredInformation {
+            owner: msg::source(),
+            gvara_token_address: init_config.gvara_contract_address.clone(),
+            stash_account_address: init_config.stash_account_address.clone(),
+            master_key: msg::source(),
+        });
     }
 
     unsafe {
@@ -70,6 +72,10 @@ extern "C" fn init() {
             initial_time: exec::block_timestamp(),
             ..Default::default()
         });
+    }
+
+    unsafe {
+        LIQUID_STAKE = Some(liquid_stake);
     }
 }
 
