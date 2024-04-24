@@ -1,6 +1,18 @@
 #![no_std]
-use gmeta::{In, InOut, Metadata, Out};
-use gstd::{ActorId, Decode, Encode, TypeInfo, Vec, prelude::*};
+use gmeta::{
+    In, 
+    InOut,
+    Metadata, 
+    Out
+};
+use gstd::{
+    ActorId, 
+    Decode, 
+    Encode, 
+    TypeInfo, 
+    Vec, 
+    prelude::*
+};
 
 pub mod ft_io;
 
@@ -47,10 +59,19 @@ pub struct Unestake {
 }
 
 #[derive(TypeInfo, Decode, Encode, Clone)]
+pub struct TransactionHistory {
+    pub transaction_id: u128,
+    pub transaction_type: String,
+    pub transaction_amount: Vara,
+    pub transaction_time: u64,
+}
+
+#[derive(TypeInfo, Decode, Encode, Clone)]
 pub struct UserInformation {
     pub user_total_vara_staked: u128,
     pub history_id_counter: u128,
-    pub unestake_history: Vec<(u128, Unestake)>
+    pub unestake_history: Vec<Unestake>,
+    pub transaction_history: Vec<TransactionHistory>
 }
 
 #[derive(TypeInfo, Default, Encode, Decode)]
