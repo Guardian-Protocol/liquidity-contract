@@ -12,5 +12,13 @@ async fn main() {
         LiquidStakeAction::Stake(amount) => {
             liquid_stake.stake(amount).await;
         }
+        
+        LiquidStakeAction::Unestake(amount) => {
+            liquid_stake.unestake(amount).await;
+        }
+
+        LiquidStakeAction::UpdateUnestake { user, era, master_key } => {
+            liquid_stake.update_unestake(user, era, master_key).await;
+        }
     };
 }

@@ -1,91 +1,124 @@
-use gstd::{collections::HashMap, exec, format, msg, ActorId};
-use io::{FTAction, FTEvent, LiquidStakeAction, LiquidStakeEvent, UserBalance};
+use gstd::{
+    collections::HashMap, 
+    exec,
+    msg, 
+    ActorId, 
+    String, 
+    Vec
+};
+use io::{
+    Era, 
+    Gvara, 
+    LiquidStakeEvent, 
+    Unestake, 
+    UserInformation
+};
 
 use crate::update_state;
+use crate::secured_information;
+
+use crate::ft_contract::ft_calls;
+use crate::utils::json::stash_message;
 
 #[derive(Default)]
 pub struct LiquidStake {
     pub owner: ActorId,
     pub gvara_token_address: ActorId,
     pub stash_account_address: ActorId,
-    pub varatoken_total_staked: u128,
+    pub varatoken_total_staked: Gvara,
     pub initial_time: u64,
     pub total_time_protocol: u64,
-    pub gvaratokens_reward_total: u128,
+    pub gvaratokens_reward_total: Gvara,
     pub distribution_time: u64,
-    pub users: HashMap<ActorId, UserBalance>,
+    pub users: HashMap<ActorId, UserInformation>,
 }
 
 impl LiquidStake {
-
-    pub async fn stake(&mut self, amount: u128) {
+    pub async fn stake(&mut self, amount: Gvara) {
         if msg::value() != (amount * 1000000000000) {
             panic!("The amount needs be equal to the value sent")
         }
 
         self.add_liquidity(amount).await;
-        self.gvara_transfer_to_user(amount).await;
+        ft_calls::transfer(amount, exec::program_id(), msg::source()).await;
 
         update_state();
+
+        let stash_message: String = stash_message(amount, String::from("stake")).await;
         
-        let _ = msg::send(self.stash_account_address, format!("{{
-            \"type\": \"stake\",
-            \"amount\": {},
-            \"source\": \"{:?}\",
-            \"value\": {}
-        }}", amount, msg::source(), msg::value()), msg::value());
-        let _ = msg::reply(LiquidStakeEvent::SuccessfullStake, 0);
+        let _ = msg::send(secured_information().stash_account_address, stash_message, msg::value());
+        let _ = msg::reply(LiquidStakeEvent::Success, 0);
     }
 
-    async fn add_liquidity(&mut self, amount_tokens: u128) {
-        let source = msg::source();
+    pub async fn unestake(&mut self, amount: Gvara) {
+        let user = self.users.get(&msg::source()).expect("User not found");
 
-        let result = msg::send_for_reply_as::<FTAction, FTEvent>(
-            self.gvara_token_address, 
-            FTAction::Mint(amount_tokens.clone()), 
-            0, 0
-        ).expect("Error in sending a message").await.expect("message error");
-        
+        if user.user_total_vara_staked < amount {
+            panic!("The amount to unestake is greater than the user's balance");
+        }
+
+        ft_calls::transfer(amount, msg::source(), exec::program_id()).await;
+        self.remove_liquidity(amount).await;
+
+        update_state();
+
+        let stash_message: String = stash_message(amount, String::from("unestake")).await;
+        let _ = msg::send(secured_information().stash_account_address, stash_message, 0);
+
         self.total_time_protocol = exec::block_timestamp() - self.initial_time;
-
-        let _ = match result {
-            FTEvent::Ok => {
-                self.users.entry(source)
-                    .and_modify(|balance| balance.user_total_vara_staked += amount_tokens.clone())
-                    .or_insert(UserBalance {
-                        user_total_vara_staked: amount_tokens.clone(),
-                        user_total_gvaratokens: 0,
-                });
-            },
-            _ => {
-                msg::reply(LiquidStakeEvent::StakeError, 0).expect("Error during the reply");
-            },
-        };
+        let _ = msg::reply(LiquidStakeEvent::Success, 0);
     }
 
-    async fn gvara_transfer_to_user(&mut self, amount_tokens: u128) {
-        let source = msg::source();
+    pub async fn update_unestake(&mut self, user: ActorId, era: Era, master_key: ActorId) {
 
-        let payload = FTAction::Transfer {
-            from: exec::program_id(),
-            to: source.clone(),
-            amount: amount_tokens.clone(),
-        };
+        if master_key != secured_information().master_key {
+            panic!("Only the admin account can send this message");
+        }
 
-        let result = msg::send_for_reply_as::<_, FTEvent>(
-            self.gvara_token_address, 
-            payload, 
-            0, 0
-        ).expect("Error").await.expect("Error papu");
+        let user: &mut UserInformation = self.users.get_mut(&user).expect("User not found");
 
-        match result {
-            FTEvent::Ok => {
-                self.users.entry(source)
-                    .and_modify(|balance| balance.user_total_gvaratokens += amount_tokens.clone());
-            },
-            _  => {
-                msg::reply(LiquidStakeEvent::StakeError, 0).expect("Error during the reply");
-            },
-        };
+        for (_index, unestake) in user.unestake_history.iter_mut() {
+            if unestake.liberation_era == 0 {
+                unestake.liberation_era = era;
+                unestake.liberation_days = 0;
+            }
+        }
+
+        update_state();
+
+        self.total_time_protocol = exec::block_timestamp() - self.initial_time;
+        let _ = msg::reply(LiquidStakeEvent::Success, 0);
+    }
+
+    async fn add_liquidity(&mut self, amount: Gvara) {
+        let source: ActorId = msg::source();
+        ft_calls::mint(amount).await;
+
+        self.users.entry(source)
+            .and_modify(|balance| balance.user_total_vara_staked += amount.clone())
+            .or_insert(UserInformation { 
+                user_total_vara_staked: amount.clone(), 
+                history_id_counter: 0,
+                unestake_history: Vec::new()
+            }
+        );
+    }
+
+    async fn remove_liquidity(&mut self, amount: Gvara) {
+        let source: ActorId = msg::source();
+        ft_calls::burn(amount).await;
+
+        self.users.entry(source)
+            .and_modify(|balance| {
+                balance.user_total_vara_staked -= amount.clone();
+                balance.unestake_history.push((balance.history_id_counter, Unestake {
+                    amount: amount.clone(),
+                    liberation_era: 0,
+                    liberation_days: 0
+                }));
+
+                balance.history_id_counter += 1;
+            }
+        );
     }
 }

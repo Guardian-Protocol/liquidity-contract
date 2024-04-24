@@ -3,13 +3,16 @@ use core::panic;
 use gstd::{exec, msg};
 
 use contract::LiquidStake;
-use io::{InitLiquidityCotract, LiquidStakeState};
+use io::{InitLiquidityCotract, LiquidStakeState, SecuredInformation};
 
 pub mod contract;
 pub mod handler;
+pub mod utils;
+pub mod ft_contract;
 
 static mut LIQUID_STAKE: Option<LiquidStake> = None;
 static mut STATE: Option<LiquidStakeState> = None;
+static mut SECURED_INFORMATION: Option<SecuredInformation> = None;
 
 fn liquid_stake_mut() -> &'static mut LiquidStake {
     unsafe { LIQUID_STAKE.get_or_insert(Default::default()) }
@@ -17,6 +20,10 @@ fn liquid_stake_mut() -> &'static mut LiquidStake {
 
 fn state_mut() -> &'static mut LiquidStakeState {
     unsafe { STATE.as_mut().unwrap_unchecked() }
+}
+
+fn secured_information() -> &'static SecuredInformation {
+    unsafe { SECURED_INFORMATION.as_ref().unwrap_unchecked() }
 }
 
 fn update_state() {
@@ -30,7 +37,7 @@ fn update_state() {
     state.total_time_protocol = liquid_stake.total_time_protocol;
     state.gvaratokens_reward_total = liquid_stake.gvaratokens_reward_total;
     state.distribution_time = liquid_stake.distribution_time;
-    state.users = liquid_stake.users.iter().map(|(k, v)| (*k, *v)).collect();
+    state.users = liquid_stake.users.iter().map(|(k, v)| (*k, v.clone())).collect();
 }
 
 #[no_mangle]
@@ -50,7 +57,12 @@ extern "C" fn init() {
     };
 
     unsafe {
-        LIQUID_STAKE = Some(liquid_stake);
+        SECURED_INFORMATION = Some(SecuredInformation {
+            owner: msg::source(),
+            gvara_token_address: init_config.gvara_contract_address.clone(),
+            stash_account_address: init_config.stash_account_address.clone(),
+            master_key: msg::source(),
+        });
     }
 
     unsafe {
@@ -60,6 +72,10 @@ extern "C" fn init() {
             initial_time: exec::block_timestamp(),
             ..Default::default()
         });
+    }
+
+    unsafe {
+        LIQUID_STAKE = Some(liquid_stake);
     }
 }
 
