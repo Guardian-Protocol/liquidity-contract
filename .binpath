@@ -1,1 +1,1 @@
-target/wasm32-unknown-unknown/debug/liquid_stake
+target/wasm32-unknown-unknown/release/liquid_stake

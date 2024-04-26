@@ -4,8 +4,10 @@ use gstd::{
     msg, 
     ActorId, 
     String, 
-    Vec
+    Vec,
+    vec
 };
+use io::TransactionHistory;
 use io::{
     Era, 
     Gvara, 
@@ -54,7 +56,7 @@ impl LiquidStake {
         let user = self.users.get(&msg::source()).expect("User not found");
 
         if user.user_total_vara_staked < amount {
-            panic!("The amount to unestake is greater than the user's balance");
+            panic!("The amount to unestake is greater than the user's user_information");
         }
 
         ft_calls::transfer(amount, msg::source(), exec::program_id()).await;
@@ -77,7 +79,7 @@ impl LiquidStake {
 
         let user: &mut UserInformation = self.users.get_mut(&user).expect("User not found");
 
-        for (_index, unestake) in user.unestake_history.iter_mut() {
+        for unestake in user.unestake_history.iter_mut() {
             if unestake.liberation_era == 0 {
                 unestake.liberation_era = era;
                 unestake.liberation_days = 0;
@@ -95,11 +97,30 @@ impl LiquidStake {
         ft_calls::mint(amount).await;
 
         self.users.entry(source)
-            .and_modify(|balance| balance.user_total_vara_staked += amount.clone())
+            .and_modify(|user_information| {
+                user_information.user_total_vara_staked += amount.clone();
+                user_information.transaction_history.push(
+                    TransactionHistory {
+                        transaction_id: user_information.history_id_counter,
+                        transaction_type: String::from("stake"),
+                        transaction_amount: amount.clone(),
+                        transaction_time: exec::block_timestamp()
+                    }
+                );
+                user_information.history_id_counter += 1;
+            })
             .or_insert(UserInformation { 
                 user_total_vara_staked: amount.clone(), 
                 history_id_counter: 0,
-                unestake_history: Vec::new()
+                unestake_history: Vec::new(),
+                transaction_history: vec![
+                    TransactionHistory {
+                        transaction_id: 0,
+                        transaction_type: String::from("stake"),
+                        transaction_amount: amount.clone(),
+                        transaction_time: exec::block_timestamp()
+                    }
+                ]
             }
         );
     }
@@ -109,15 +130,25 @@ impl LiquidStake {
         ft_calls::burn(amount).await;
 
         self.users.entry(source)
-            .and_modify(|balance| {
-                balance.user_total_vara_staked -= amount.clone();
-                balance.unestake_history.push((balance.history_id_counter, Unestake {
+            .and_modify(|user_information| {
+                user_information.user_total_vara_staked -= amount.clone();
+
+                user_information.unestake_history.push( Unestake {
                     amount: amount.clone(),
                     liberation_era: 0,
                     liberation_days: 0
-                }));
+                });
 
-                balance.history_id_counter += 1;
+                user_information.transaction_history.push(
+                    TransactionHistory {
+                        transaction_id: user_information.history_id_counter,
+                        transaction_type: String::from("unestake"),
+                        transaction_amount: amount.clone(),
+                        transaction_time: exec::block_timestamp()
+                    }
+                );
+
+                user_information.history_id_counter += 1;
             }
         );
     }
