@@ -7,20 +7,22 @@ use gstd::{
     Vec,
     vec
 };
-use io::TransactionHistory;
 use io::{
     Era, 
     Gvara, 
     LiquidStakeEvent, 
+    TransactionHistory, 
     Unestake, 
-    UserInformation
+    UnestakeId, 
+    UserInformation, 
+    Vara,
+    server_io::ServerMessage
 };
 
-use crate::update_state;
 use crate::secured_information;
 
 use crate::ft_contract::ft_calls;
-use crate::utils::json::stash_message;
+use crate::utils::server::server_message;
 
 #[derive(Default)]
 pub struct LiquidStake {
@@ -44,11 +46,7 @@ impl LiquidStake {
         self.add_liquidity(amount).await;
         ft_calls::transfer(amount, exec::program_id(), msg::source()).await;
 
-        update_state();
-
-        let stash_message: String = stash_message(amount, String::from("stake")).await;
-        
-        let _ = msg::send(secured_information().stash_account_address, stash_message, msg::value());
+        server_message(ServerMessage::Stake(amount as Vara));
         let _ = msg::reply(LiquidStakeEvent::Success, 0);
     }
 
@@ -62,18 +60,32 @@ impl LiquidStake {
         ft_calls::transfer(amount, msg::source(), exec::program_id()).await;
         self.remove_liquidity(amount).await;
 
-        update_state();
-
-        let stash_message: String = stash_message(amount, String::from("unestake")).await;
-        let _ = msg::send(secured_information().stash_account_address, stash_message, 0);
-
-        self.total_time_protocol = exec::block_timestamp() - self.initial_time;
+        server_message(ServerMessage::Unestake(amount as Vara));
         let _ = msg::reply(LiquidStakeEvent::Success, 0);
     }
 
-    pub async fn update_unestake(&mut self, user: ActorId, era: Era, master_key: ActorId) {
+    pub async fn withdraw(&mut self, unestake_id: UnestakeId) {
+        let user: &mut UserInformation = self.users.get_mut(&msg::source()).expect("User not found");
 
-        if master_key != secured_information().master_key {
+        let unestake_pos = user.unestake_history.iter_mut()
+            .position(|unestake| unestake.unestake_id == unestake_id)
+            .expect("Unestake not found");
+
+        let unestake = user.unestake_history.get(unestake_pos).expect("Unestake not found").clone();
+        let unestake_days = (exec::block_timestamp() - unestake.unestake_date_milis) / 86400000;
+
+        if unestake_days < unestake.liberation_days {
+            panic!("The unestake is not yet available for withdrawal left days: {}", unestake_days);
+        }
+
+        user.unestake_history.remove(unestake_pos);
+
+        server_message(ServerMessage::Withdraw(unestake.amount as Vara));
+        let _ = msg::reply(LiquidStakeEvent::Success, 0);
+    }
+
+    pub async fn update_unestake(&mut self, user: ActorId, liberation_era: Era, liberation_days: u64) {
+        if msg::source() != secured_information().master_key {
             panic!("Only the admin account can send this message");
         }
 
@@ -81,15 +93,21 @@ impl LiquidStake {
 
         for unestake in user.unestake_history.iter_mut() {
             if unestake.liberation_era == 0 {
-                unestake.liberation_era = era;
-                unestake.liberation_days = 0;
+                unestake.liberation_era = liberation_era;
+                unestake.liberation_days = liberation_days;
             }
         }
 
-        update_state();
-
         self.total_time_protocol = exec::block_timestamp() - self.initial_time;
         let _ = msg::reply(LiquidStakeEvent::Success, 0);
+    }
+
+    pub async fn complete_withdraw(&mut self, user: ActorId) {
+        if msg::source() != secured_information().master_key {
+            panic!("Only the admin account can send this message");
+        }
+
+        let _ = msg::send(user, LiquidStakeEvent::SuccessfullWithdraw, msg::value());
     }
 
     async fn add_liquidity(&mut self, amount: Gvara) {
@@ -107,11 +125,13 @@ impl LiquidStake {
                         transaction_time: exec::block_timestamp()
                     }
                 );
+
                 user_information.history_id_counter += 1;
             })
             .or_insert(UserInformation { 
                 user_total_vara_staked: amount.clone(), 
                 history_id_counter: 0,
+                unestake_id_counter: 0,
                 unestake_history: Vec::new(),
                 transaction_history: vec![
                     TransactionHistory {
@@ -134,9 +154,11 @@ impl LiquidStake {
                 user_information.user_total_vara_staked -= amount.clone();
 
                 user_information.unestake_history.push( Unestake {
+                    unestake_id: user_information.unestake_id_counter,
                     amount: amount.clone(),
                     liberation_era: 0,
-                    liberation_days: 0
+                    liberation_days: 0,
+                    unestake_date_milis: exec::block_timestamp()
                 });
 
                 user_information.transaction_history.push(
@@ -149,6 +171,7 @@ impl LiquidStake {
                 );
 
                 user_information.history_id_counter += 1;
+                user_information.unestake_id_counter += 1;
             }
         );
     }
