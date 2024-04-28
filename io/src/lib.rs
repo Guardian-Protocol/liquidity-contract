@@ -15,8 +15,11 @@ use gstd::{
 };
 
 pub mod ft_io;
+pub mod server_io;
 
 pub type TransactionId = u64;
+pub type UnestakeId = u64;
+
 pub type Era = u64;
 pub type MasterKey = ActorId;
 
@@ -27,10 +30,14 @@ pub type Vara = u128;
 pub enum LiquidStakeAction {
     Stake(u128),
     Unestake(u128),
+    Withdraw(UnestakeId),
     UpdateUnestake {
         user: ActorId,
-        era: Era,
-        master_key: ActorId,
+        liberation_era: Era,
+        liberation_days: u64,
+    },
+    CompleteWithdraw {
+        user: ActorId,
     }
 }
 
@@ -39,6 +46,7 @@ pub enum LiquidStakeEvent {
     Success,
     SuccessfullStake,
     SuccessfullUnestake,
+    SuccessfullWithdraw,
     StashMessage {
         user: ActorId,
         message_type: String,
@@ -53,9 +61,11 @@ pub enum LiquidStakeEvent {
 
 #[derive(TypeInfo, Decode, Encode, Clone, Copy)]
 pub struct Unestake {
+    pub unestake_id: UnestakeId,
     pub amount: Gvara,
     pub liberation_era: u64,
-    pub liberation_days: u32,
+    pub liberation_days: u64,
+    pub unestake_date_milis: u64,
 }
 
 #[derive(TypeInfo, Decode, Encode, Clone)]
@@ -70,6 +80,7 @@ pub struct TransactionHistory {
 pub struct UserInformation {
     pub user_total_vara_staked: u128,
     pub history_id_counter: u128,
+    pub unestake_id_counter: u64,
     pub unestake_history: Vec<Unestake>,
     pub transaction_history: Vec<TransactionHistory>
 }
