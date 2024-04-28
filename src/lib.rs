@@ -61,7 +61,7 @@ extern "C" fn init() {
             owner: msg::source(),
             gvara_token_address: init_config.gvara_contract_address.clone(),
             stash_account_address: init_config.stash_account_address.clone(),
-            master_key: msg::source(),
+            master_key: init_config.master_key.clone(),
         });
     }
 

@@ -85,8 +85,8 @@ impl LiquidStake {
     }
 
     pub async fn update_unestake(&mut self, user: ActorId, liberation_era: Era, liberation_days: u64) {
-        if msg::source() != secured_information().master_key {
-            panic!("Only the admin account can send this message");
+        if msg::source() != secured_information().master_key && msg::source() != secured_information().stash_account_address {
+            panic!("You are not authorized to send this message");
         }
 
         let user: &mut UserInformation = self.users.get_mut(&user).expect("User not found");
