@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-     - name: Get short SHA
+      - name: Get short SHA
         id: sha
         run: echo "::set-output name=sha::$(git rev-parse --short "$GITHUB_SHA")"
 
