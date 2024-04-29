@@ -1,0 +1,32 @@
+name: Liquidity-Contract Release action
+
+on:
+  pushes:
+    branches:
+      - prod
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compile
+        run: cargo build --release
+
+      - name: Create release
+        run: | 
+          git tag -a ${{ git rev-parse --short "$GITHUB_SHA" }} -m "Release ${{ git rev-parse --short "$GITHUB_SHA" }}"
+          git push origin --tags
+
+      - name: Push to release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "target/wasm32-unknown-unknown/release/liquid_stake.opt.wasm"
+          token: ${{ secrets.TOKEN }}
+          release_name: "V" + ${{ git rev-parse --short "$GITHUB_SHA" }}
+          tag: ${{ git rev-parse --short "$GITHUB_SHA" }}
