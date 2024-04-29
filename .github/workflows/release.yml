@@ -1,7 +1,7 @@
 name: Liquidity-Contract Release action
 
 on:
-  pushes:
+  push:
     branches:
       - prod
 
