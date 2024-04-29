@@ -28,7 +28,7 @@ jobs:
         with:
           artifacts: "target/wasm32-unknown-unknown/release/liquid_stake.opt.wasm"
           token: ${{ secrets.TOKEN }}
-          release_name: "V" + ${{ git rev-parse --short "$GITHUB_SHA" }}
+          release_name: ${{ format('V{0}', git rev-parse --short "$GITHUB_SHA") }}
           release_body: "Guardian protocol release"
           tag: ${{ git rev-parse --short "$GITHUB_SHA" }}
           draft: false
