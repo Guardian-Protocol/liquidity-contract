@@ -3,7 +3,7 @@ name: Liquidity-Contract Release action
 on:
   push:
     branches:
-      - prod
+      - main
 
 env:
   CARGO_TERM_COLOR: always
