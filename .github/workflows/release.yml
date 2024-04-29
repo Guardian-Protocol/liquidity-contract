@@ -15,16 +15,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get short SHA
-        id: sha
-        run: echo "::set-output name=sha::$(git rev-parse --short "$GITHUB_SHA")"
-
       - name: Compile
         run: cargo build --release
 
       - name: Create release
         run: | 
-          git tag -a ${{ steps.sha.outputs.sha }} -m "Release ${{ steps.sha.outputs.sha }}"
+          git tag -a ${{ git rev-parse --short "$GITHUB_SHA" }} -m "Release ${{ git rev-parse --short "$GITHUB_SHA" }}"
           git push origin --tags
 
       - name: Push to release
