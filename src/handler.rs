@@ -2,7 +2,6 @@ use gstd::{async_main, msg};
 use io::LiquidStakeAction;
 
 use crate::liquid_stake_mut;
-use crate::update_state;
 
 #[async_main]
 async fn main() {
@@ -30,6 +29,4 @@ async fn main() {
             liquid_stake.complete_withdraw(user).await;
         }
     };
-
-    update_state();
 }

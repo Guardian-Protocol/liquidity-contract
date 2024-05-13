@@ -2400,19 +2400,8 @@ source = "git+https://github.com/gear-tech/gear.git?rev=v1.2.0#80fffbcc77edc55c1
 dependencies = [
  "blake2-rfc",
  "derive_more",
- "gmeta-codegen",
  "hex",
  "scale-info",
-]
-
-[[package]]
-name = "gmeta-codegen"
-version = "1.2.0"
-source = "git+https://github.com/gear-tech/gear.git?rev=v1.2.0#80fffbcc77edc55c1c84bbdc61cdf96225935b41"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.51",
 ]
 
 [[package]]
@@ -3289,7 +3278,6 @@ dependencies = [
  "io",
  "parity-scale-codec",
  "scale-info",
- "state",
 ]
 
 [[package]]
@@ -5565,18 +5553,6 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
-
-[[package]]
-name = "state"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "gmeta",
- "gstd",
- "io",
- "parity-scale-codec",
- "scale-info",
-]
 
 [[package]]
 name = "static_assertions"
