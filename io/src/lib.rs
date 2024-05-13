@@ -2,8 +2,7 @@
 use gmeta::{
     In, 
     InOut,
-    Metadata, 
-    Out
+    Metadata,
 };
 use gstd::{
     ActorId, 
@@ -13,9 +12,11 @@ use gstd::{
     Vec, 
     prelude::*
 };
+use state_query::{LiquidityQuery, LiquidityResponse};
 
 pub mod ft_io;
 pub mod server_io;
+pub mod state_query;
 
 pub type TransactionId = u64;
 pub type UnestakeId = u64;
@@ -57,6 +58,11 @@ pub enum LiquidStakeEvent {
         total: u128,
     },
     StakeError,
+}
+
+#[derive(TypeInfo, Encode, Decode)]
+pub enum LiquidityError {
+    UserNotFound(String)
 }
 
 #[derive(TypeInfo, Decode, Encode, Clone, Copy)]
@@ -121,5 +127,5 @@ impl Metadata for ContractMetadata {
     type Others = ();
     type Reply = ();
     type Signal = ();
-    type State = Out<LiquidStakeState>;
+    type State = InOut<LiquidityQuery, Result<LiquidityResponse, LiquidityError>>;
 }
