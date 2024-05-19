@@ -15,15 +15,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compile
-        run: cargo build --release
+      - name: Checking
+        run: cargo check
 
-      - name: Push to release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "target/wasm32-unknown-unknown/release/liquid_stake.opt.wasm"
-          token: ${{ secrets.TOKEN }}
-          release_name: "V1.0.0"
-          release_body: "Guardian protocol release - v1"
-          tag: V1.0.0
-          draft: false
+      - name: Cleanup
+        run: cargo clean
