@@ -60,7 +60,7 @@ pub enum LiquidStakeEvent {
     StakeError,
 }
 
-#[derive(TypeInfo, Encode, Decode)]
+#[derive(TypeInfo, Encode, Decode, Debug)]
 pub enum LiquidityError {
     UserNotFound(String)
 }

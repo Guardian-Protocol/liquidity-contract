@@ -9,22 +9,12 @@ async fn main() {
     let liquid_stake = liquid_stake_mut();
 
     match action {
-        LiquidStakeAction::Stake(amount) => {
-            liquid_stake.stake(amount).await;
-        }
-        
-        LiquidStakeAction::Unestake(amount) => {
-            liquid_stake.unestake(amount).await;
-        }
-
-        LiquidStakeAction::Withdraw(amount) => {
-            liquid_stake.withdraw(amount).await;
-        }
-
+        LiquidStakeAction::Stake(amount) => liquid_stake.stake(amount).await,
+        LiquidStakeAction::Unestake(amount) => liquid_stake.unestake(amount).await,
+        LiquidStakeAction::Withdraw(unestake_id) => liquid_stake.withdraw(unestake_id).await,
         LiquidStakeAction::UpdateUnestake { user, liberation_era, liberation_days } => {
             liquid_stake.update_unestake(user, liberation_era, liberation_days).await;
         }
-
         LiquidStakeAction::CompleteWithdraw { user } => {
             liquid_stake.complete_withdraw(user).await;
         }

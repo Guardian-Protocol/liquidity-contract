@@ -43,7 +43,7 @@ impl LiquidStake {
             panic!("The amount needs be equal to the value sent")
         }
 
-        self.add_liquidity(amount).await;
+        self.add_liquidity(&amount).await;
         ft_calls::transfer(amount, exec::program_id(), msg::source()).await;
 
         server_message(ServerMessage::Stake(amount as Vara));
@@ -58,7 +58,7 @@ impl LiquidStake {
         }
 
         ft_calls::transfer(amount, msg::source(), exec::program_id()).await;
-        self.remove_liquidity(amount).await;
+        self.remove_liquidity(&amount).await;
 
         server_message(ServerMessage::Unestake(amount as Vara));
         let _ = msg::reply(LiquidStakeEvent::Success, 0);
@@ -110,9 +110,9 @@ impl LiquidStake {
         let _ = msg::send(user, LiquidStakeEvent::SuccessfullWithdraw, msg::value());
     }
 
-    async fn add_liquidity(&mut self, amount: Gvara) {
+    async fn add_liquidity(&mut self, amount: &Gvara) {
         let source: ActorId = msg::source();
-        ft_calls::mint(amount).await;
+        ft_calls::mint(*amount).await;
 
         self.users.entry(source)
             .and_modify(|user_information| {
@@ -145,9 +145,9 @@ impl LiquidStake {
         );
     }
 
-    async fn remove_liquidity(&mut self, amount: Gvara) {
+    async fn remove_liquidity(&mut self, amount: &Gvara) {
         let source: ActorId = msg::source();
-        ft_calls::burn(amount).await;
+        ft_calls::burn(*amount).await;
 
         self.users.entry(source)
             .and_modify(|user_information| {
