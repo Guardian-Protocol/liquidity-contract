@@ -8,32 +8,22 @@ use gstd::{
     vec
 };
 use io::{
-    Era, 
     Gvara, 
     LiquidStakeEvent, 
     TransactionHistory, 
     Unestake, 
     UnestakeId, 
     UserInformation, 
-    Vara,
-    server_io::ServerMessage
 };
 
-use crate::secured_information;
-
 use crate::ft_contract::ft_calls;
-use crate::utils::server::server_message;
 
 #[derive(Default)]
 pub struct LiquidStake {
     pub owner: ActorId,
-    pub gvara_token_address: ActorId,
-    pub stash_account_address: ActorId,
     pub varatoken_total_staked: Gvara,
     pub initial_time: u64,
     pub total_time_protocol: u64,
-    pub gvaratokens_reward_total: Gvara,
-    pub distribution_time: u64,
     pub users: HashMap<ActorId, UserInformation>,
 }
 
@@ -46,7 +36,6 @@ impl LiquidStake {
         self.add_liquidity(&amount).await;
         ft_calls::transfer(amount, exec::program_id(), msg::source()).await;
 
-        server_message(ServerMessage::Stake(amount as Vara));
         let _ = msg::reply(LiquidStakeEvent::Success, 0);
     }
 
@@ -60,7 +49,6 @@ impl LiquidStake {
         ft_calls::transfer(amount, msg::source(), exec::program_id()).await;
         self.remove_liquidity(&amount).await;
 
-        server_message(ServerMessage::Unestake(amount as Vara));
         let _ = msg::reply(LiquidStakeEvent::Success, 0);
     }
 
@@ -79,35 +67,7 @@ impl LiquidStake {
         }
 
         user.unestake_history.remove(unestake_pos);
-
-        server_message(ServerMessage::Withdraw(unestake.amount as Vara));
         let _ = msg::reply(LiquidStakeEvent::Success, 0);
-    }
-
-    pub async fn update_unestake(&mut self, user: ActorId, liberation_era: Era, liberation_days: u64) {
-        if msg::source() != secured_information().master_key && msg::source() != secured_information().stash_account_address {
-            panic!("You are not authorized to send this message");
-        }
-
-        let user: &mut UserInformation = self.users.get_mut(&user).expect("User not found");
-
-        for unestake in user.unestake_history.iter_mut() {
-            if unestake.liberation_era == 0 {
-                unestake.liberation_era = liberation_era;
-                unestake.liberation_days = liberation_days;
-            }
-        }
-
-        self.total_time_protocol = exec::block_timestamp() - self.initial_time;
-        let _ = msg::reply(LiquidStakeEvent::Success, 0);
-    }
-
-    pub async fn complete_withdraw(&mut self, user: ActorId) {
-        if msg::source() != secured_information().master_key {
-            panic!("Only the admin account can send this message");
-        }
-
-        let _ = msg::send(user, LiquidStakeEvent::SuccessfullWithdraw, msg::value());
     }
 
     async fn add_liquidity(&mut self, amount: &Gvara) {

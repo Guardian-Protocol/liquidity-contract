@@ -10,7 +10,6 @@ use io::{
 
 pub mod contract;
 pub mod handler;
-pub mod utils;
 pub mod ft_contract;
 pub mod state;
 
@@ -35,18 +34,13 @@ extern "C" fn init() {
 
     let liquid_stake = LiquidStake {
         owner: msg::source(),
-        gvara_token_address: init_config.gvara_contract_address.clone(),
-        stash_account_address: init_config.stash_account_address.clone(),
         initial_time: exec::block_timestamp(),
         ..Default::default()
     };
 
     unsafe {
         SECURED_INFORMATION = Some(SecuredInformation {
-            owner: msg::source(),
             gvara_token_address: init_config.gvara_contract_address.clone(),
-            stash_account_address: init_config.stash_account_address.clone(),
-            master_key: init_config.master_key.clone(),
         });
     }
 

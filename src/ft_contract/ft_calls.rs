@@ -1,6 +1,14 @@
-use gstd::{errors::Error, exec, msg, ActorId};
+use gstd::{
+    exec, 
+    msg, 
+    ActorId
+};
 use io::{
-    ft_io::{FTAction, FTError, FTEvent}, 
+    ft_io::{
+        FTAction, 
+        FTError, 
+        FTEvent
+    }, 
     Gvara
 };
 
@@ -19,7 +27,7 @@ pub async fn mint(amount: Gvara) {
     ).expect("Error").await.expect("Internal FT contract error");
 
     let _ = match result {
-        Ok(FTEvent::Transferred { from, to, amount }) => { 
+        Ok(FTEvent::Transferred { from: _, to: _, amount: _ }) => { 
             // Ok
         },
         Err(_) => {
@@ -45,7 +53,7 @@ pub async fn burn(amount: Gvara) {
         .expect("Internal contract error: code FT-03");
 
     let _ = match result {
-        FTEvent::Transferred { from, to, amount } => { },
+        FTEvent::Transferred { from: _, to: _, amount: _ }=> { },
         _ => {
             panic!("Internal contract error: please notify this to the dev team: code FT-01")
         },
@@ -69,7 +77,7 @@ pub async fn transfer(amount: Gvara, from: ActorId, to: ActorId) {
         .expect("Internal contract error: code FT-03");
 
     let _ = match result {
-        FTEvent::Transferred { from, to, amount } => { },
+        FTEvent::Transferred { from: _, to: _, amount: _ } => { },
         _ => {
             panic!("Internal contract error: please notify this to the dev team: code FT-01")
         },
