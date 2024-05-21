@@ -1,6 +1,4 @@
 use gstd::{ActorId, Decode, Encode, TypeInfo, Vec};
-use crate::Gvara;
-
 pub type TxId = u64;
 
 #[derive(TypeInfo, Encode, Decode)]

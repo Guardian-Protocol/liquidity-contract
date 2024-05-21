@@ -15,7 +15,6 @@ use gstd::{
 use state_query::{LiquidityQuery, LiquidityResponse};
 
 pub mod ft_io;
-pub mod server_io;
 pub mod state_query;
 
 pub type TransactionId = u64;
@@ -32,14 +31,6 @@ pub enum LiquidStakeAction {
     Stake(u128),
     Unestake(u128),
     Withdraw(UnestakeId),
-    UpdateUnestake {
-        user: ActorId,
-        liberation_era: Era,
-        liberation_days: u64,
-    },
-    CompleteWithdraw {
-        user: ActorId,
-    }
 }
 
 #[derive(Encode, Decode, TypeInfo)]
@@ -113,10 +104,7 @@ pub struct InitLiquidityCotract {
 
 #[derive(TypeInfo, Encode, Decode)]
 pub struct SecuredInformation {
-    pub owner: ActorId,
     pub gvara_token_address: ActorId,
-    pub stash_account_address: ActorId,
-    pub master_key: ActorId,
 }
 
 pub struct ContractMetadata;
