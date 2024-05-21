@@ -1,7 +1,7 @@
 use gstd::{
     exec, 
     msg, 
-    ActorId
+    ActorId, ToString
 };
 use io::{
     ft_io::{
@@ -9,12 +9,12 @@ use io::{
         FTError, 
         FTEvent
     }, 
-    Gvara
+    Gvara, LiquidError
 };
 
 use crate::secured_information;
 
-pub async fn mint(amount: Gvara) {
+pub async fn mint(amount: Gvara) -> Result<(), LiquidError> {
     let action: FTAction = FTAction::Mint { 
         amount: amount.clone(), 
         to: exec::program_id()
@@ -24,22 +24,19 @@ pub async fn mint(amount: Gvara) {
         secured_information().gvara_token_address.clone(), 
         action, 
         0, 0
-    ).expect("Error").await.expect("Internal FT contract error");
+    ).expect("Error").await
+        .expect("Internal contract error: code FT-01")
+        .expect("Internal contract error: code FT-02");
 
-    let _ = match result {
-        Ok(FTEvent::Transferred { from: _, to: _, amount: _ }) => { 
-            // Ok
-        },
-        Err(_) => {
-            panic!("The caller is not an admin")
-        },
+    match result {
+        FTEvent::Transferred { from: _, to: _, amount: _ }=> { Ok(()) },
         _ => {
-            panic!("Internal contract error: please notify this to the dev team: code FT-01")
-        }
-    };
+            Err(LiquidError::InternalContractError("Internal contract error: please notify this to the dev team: code FT-03".to_string()))
+        },
+    }
 }
 
-pub async fn burn(amount: Gvara) {
+pub async fn burn(amount: Gvara) -> Result<(), LiquidError> {
     let action: FTAction = FTAction::Burn {
         amount: amount.clone() 
     };
@@ -52,15 +49,15 @@ pub async fn burn(amount: Gvara) {
         .expect("Internal contract error: code FT-02")
         .expect("Internal contract error: code FT-03");
 
-    let _ = match result {
-        FTEvent::Transferred { from: _, to: _, amount: _ }=> { },
+    match result {
+        FTEvent::Transferred { from: _, to: _, amount: _ }=> { Ok(()) },
         _ => {
-            panic!("Internal contract error: please notify this to the dev team: code FT-01")
+            Err(LiquidError::InternalContractError("Internal contract error: please notify this to the dev team: code FT-03".to_string()))
         },
-    };
+    }
 }
 
-pub async fn transfer(amount: Gvara, from: ActorId, to: ActorId) {
+pub async fn transfer(amount: Gvara, from: ActorId, to: ActorId) -> Result<(), LiquidError> {
     let action: FTAction = FTAction::Transfer { 
         tx_id: None, 
         from: from.clone(), 
@@ -76,10 +73,10 @@ pub async fn transfer(amount: Gvara, from: ActorId, to: ActorId) {
         .expect("Internal contract error: code FT-02")
         .expect("Internal contract error: code FT-03");
 
-    let _ = match result {
-        FTEvent::Transferred { from: _, to: _, amount: _ } => { },
+    match result {
+        FTEvent::Transferred { from: _, to: _, amount: _ } => { Ok(()) },
         _ => {
-            panic!("Internal contract error: please notify this to the dev team: code FT-01")
+            Err(LiquidError::InternalContractError("Internal contract error: please notify this to the dev team: code FT-03".to_string()))
         },
-    };
+    }
 }

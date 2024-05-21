@@ -8,7 +8,7 @@ use io::{
         LiquidityQuery, 
         LiquidityResponse
     }, 
-    LiquidityError,
+    LiquidError
 };
 
 use crate::{
@@ -27,7 +27,7 @@ extern "C" fn state() {
                 let locked_balance = user.user_total_vara_staked;
                 Ok(LiquidityResponse::UserVaraLocked(locked_balance.clone()))
             } else {
-                Err(LiquidityError::UserNotFound(String::from(format!("User not found {:?}", &source))))
+                Err(LiquidError::UserNotFound(String::from(format!("User not found {:?}", &source))))
             }
         }
         LiquidityQuery::GetTransactionHistory(source) => {
@@ -35,7 +35,7 @@ extern "C" fn state() {
                 let transaction_history = user.transaction_history.clone();
                 Ok(LiquidityResponse::TransactionHistory(transaction_history.clone()))
             } else {
-                Err(LiquidityError::UserNotFound(String::from(format!("User not found {:?}", &source))))
+                Err(LiquidError::UserNotFound(String::from(format!("User not found {:?}", &source))))
             }
         },
         LiquidityQuery::GetUnestakeHistory(source) => {
@@ -43,7 +43,7 @@ extern "C" fn state() {
                 let unestake_history = user.unestake_history.clone();
                 Ok(LiquidityResponse::UnestakeHistory(unestake_history.clone()))
             } else {
-                Err(LiquidityError::UserNotFound(String::from(format!("User not found {:?}", &source))))
+                Err(LiquidError::UserNotFound(String::from(format!("User not found {:?}", &source))))
             }
         }
     };

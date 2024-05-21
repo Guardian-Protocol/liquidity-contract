@@ -8,9 +8,11 @@ async fn main() {
     let action = msg::load().expect("Could not load Action");
     let liquid_stake = liquid_stake_mut();
 
-    match action {
+    let result = match action {
         LiquidStakeAction::Stake(amount) => liquid_stake.stake(amount).await,
         LiquidStakeAction::Unestake(amount) => liquid_stake.unestake(amount).await,
         LiquidStakeAction::Withdraw(unestake_id) => liquid_stake.withdraw(unestake_id).await,
     };
+
+    let _ = msg::reply(result, 0);
 }

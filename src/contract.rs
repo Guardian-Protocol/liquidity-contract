@@ -1,19 +1,8 @@
 use gstd::{
-    collections::HashMap, 
-    exec,
-    msg, 
-    ActorId, 
-    String, 
-    Vec,
-    vec
+    collections::HashMap, exec, format, msg, vec, ActorId, String, ToString, Vec
 };
 use io::{
-    Gvara, 
-    LiquidStakeEvent, 
-    TransactionHistory, 
-    Unestake, 
-    UnestakeId, 
-    UserInformation, 
+    Gvara, LiquidError, LiquidStakeEvent, TransactionHistory, Unestake, UnestakeId, UserInformation 
 };
 
 use crate::ft_contract::ft_calls;
@@ -28,51 +17,71 @@ pub struct LiquidStake {
 }
 
 impl LiquidStake {
-    pub async fn stake(&mut self, amount: Gvara) {
-        if msg::value() != (amount * 1000000000000) {
-            panic!("The amount needs be equal to the value sent")
+    pub async fn stake(&mut self, amount: Gvara) -> Result<LiquidStakeEvent, LiquidError> {
+        if let Err(err) = self.add_liquidity(&amount).await {
+            return Err(err);
         }
 
-        self.add_liquidity(&amount).await;
-        ft_calls::transfer(amount, exec::program_id(), msg::source()).await;
+        if let Err(err) = ft_calls::transfer(amount, msg::source(), exec::program_id()).await {
+            return Err(err);
+        }
 
-        let _ = msg::reply(LiquidStakeEvent::Success, 0);
+        return Ok(LiquidStakeEvent::Success)
     }
 
-    pub async fn unestake(&mut self, amount: Gvara) {
-        let user = self.users.get(&msg::source()).expect("User not found");
+    pub async fn unestake(&mut self, amount: Gvara) -> Result<LiquidStakeEvent, LiquidError> {
+        let user = self.users.get(&msg::source())
+            .ok_or_else(|| LiquidError::UserNotFound(format!("User not found {:?}", msg::source()).to_string()));
 
+        if let Err(err) = user {
+            return Err(err);
+        }
+
+        let user = user.unwrap();
+    
         if user.user_total_vara_staked < amount {
-            panic!("The amount to unestake is greater than the user's user_information");
+            return Err(LiquidError::InsuficientBalance(format!("{} != {}", user.user_total_vara_staked, amount).to_string()));
         }
 
-        ft_calls::transfer(amount, msg::source(), exec::program_id()).await;
-        self.remove_liquidity(&amount).await;
+        if let Err(err) = self.remove_liquidity(&amount).await {
+            return Err(err);
+        }
 
-        let _ = msg::reply(LiquidStakeEvent::Success, 0);
+        return Ok(LiquidStakeEvent::Success);
     }
 
-    pub async fn withdraw(&mut self, unestake_id: UnestakeId) {
+    pub async fn withdraw(&mut self, unestake_id: UnestakeId) -> Result<LiquidStakeEvent, LiquidError> {
         let user: &mut UserInformation = self.users.get_mut(&msg::source()).expect("User not found");
 
-        let unestake_pos = user.unestake_history.iter_mut()
+        let pos_candidate = user.unestake_history.iter_mut()
             .position(|unestake| unestake.unestake_id == unestake_id)
-            .expect("Unestake not found");
+            .ok_or_else(|| LiquidError::UnestakeNotFound(format!("Unestake not found {:?}", unestake_id).to_string()));
+
+        if let Err(err) = pos_candidate {
+            return Err(err);
+        }
+
+        let unestake_pos = pos_candidate.unwrap();
 
         let unestake = user.unestake_history.get(unestake_pos).expect("Unestake not found").clone();
         let unestake_days = (exec::block_timestamp() - unestake.unestake_date_milis) / 86400000;
 
         if unestake_days < unestake.liberation_days {
-            panic!("The unestake is not yet available for withdrawal left days: {}", unestake_days);
+            return Err(LiquidError::WithdrawIsNotReady(format!("{} < {}", unestake_days, unestake.liberation_days).to_string()));
         }
 
         user.unestake_history.remove(unestake_pos);
-        let _ = msg::reply(LiquidStakeEvent::Success, 0);
+        return Ok(LiquidStakeEvent::Success);
     }
 
-    async fn add_liquidity(&mut self, amount: &Gvara) {
+    async fn add_liquidity(&mut self, amount: &Gvara) -> Result<(), LiquidError> {
         let source: ActorId = msg::source();
-        ft_calls::mint(*amount).await;
+        
+        let result = ft_calls::mint(*amount).await;
+
+        if let Err(err) = result {
+            return Err(err);
+        }
 
         self.users.entry(source)
             .and_modify(|user_information| {
@@ -85,7 +94,7 @@ impl LiquidStake {
                         transaction_time: exec::block_timestamp()
                     }
                 );
-
+                
                 user_information.history_id_counter += 1;
             })
             .or_insert(UserInformation { 
@@ -103,11 +112,20 @@ impl LiquidStake {
                 ]
             }
         );
+
+        Ok(())
     }
 
-    async fn remove_liquidity(&mut self, amount: &Gvara) {
+    async fn remove_liquidity(&mut self, amount: &Gvara) -> Result<(), LiquidError>  {
         let source: ActorId = msg::source();
-        ft_calls::burn(*amount).await;
+
+        if let Err(err) = ft_calls::transfer(*amount, msg::source(), exec::program_id()).await {
+            return Err(err);
+        }
+
+        if let Err(err) = ft_calls::burn(*amount).await {
+            return Err(err);
+        }
 
         self.users.entry(source)
             .and_modify(|user_information| {
@@ -134,5 +152,7 @@ impl LiquidStake {
                 user_information.unestake_id_counter += 1;
             }
         );
+
+        Ok(())
     }
 }
