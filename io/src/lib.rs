@@ -52,8 +52,13 @@ pub enum LiquidStakeEvent {
 }
 
 #[derive(TypeInfo, Encode, Decode, Debug)]
-pub enum LiquidityError {
-    UserNotFound(String)
+pub enum LiquidError {
+    UserNotFound(String),
+    InsuficientBalance(String),
+    WithdrawIsNotReady(String),
+    UnestakeNotFound(String),
+    InternalFTError(String),
+    InternalContractError(String),
 }
 
 #[derive(TypeInfo, Decode, Encode, Clone, Copy)]
@@ -111,9 +116,9 @@ pub struct ContractMetadata;
 
 impl Metadata for ContractMetadata {
     type Init = In<InitLiquidityCotract>;
-    type Handle = InOut<LiquidStakeAction, LiquidStakeEvent>;
+    type Handle = InOut<LiquidStakeAction, Result<LiquidStakeEvent, LiquidError>>;
     type Others = ();
     type Reply = ();
     type Signal = ();
-    type State = InOut<LiquidityQuery, Result<LiquidityResponse, LiquidityError>>;
+    type State = InOut<LiquidityQuery, Result<LiquidityResponse, LiquidError>>;
 }
