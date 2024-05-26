@@ -1,5 +1,4 @@
-use gstd::{
-    format, 
+use gstd::{ 
     msg,  
     String
 };
@@ -11,10 +10,7 @@ use io::{
     LiquidError
 };
 
-use crate::{
-    contract::LiquidStake, 
-    secured_information
-};
+use crate::secured_information;
 
 #[no_mangle]
 extern "C" fn state() {
@@ -24,9 +20,13 @@ extern "C" fn state() {
     let result = match query {
         LiquidityQuery::GetUserStore(actor_id) => {
             if let Some(store_id) = sec_information.users.get(&actor_id) {
-                Ok(LiquidityResponse::UserStore(sec_information.store_contracts.get(store_id).unwrap().clone()))
+                if let Some(store) = sec_information.store_contracts.get(*store_id) {
+                    Ok(LiquidityResponse::UserStore(store.address.clone()))
+                } else {
+                    Err(LiquidError::StoreNotAvailable(String::from("Store not found")))
+                }
             } else {
-                Err(LiquidError::StoreNotAvailable)
+                Err(LiquidError::StoreNotAvailable(String::from("User does not have a store")))
             }
         }
     };

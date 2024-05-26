@@ -1,4 +1,4 @@
-use gstd::{async_main, msg};
+use gstd::{async_main, msg, String};
 use io::{LiquidError, LiquidStakeAction, LiquidStakeEvent};
 
 use crate::liquid_stake_mut;
@@ -17,8 +17,9 @@ async fn main() {
         LiquidStakeAction::Withdraw(unestake_id) => {
             if let Ok(LiquidStakeEvent::SuccessfullWithdraw(amount)) = liquid_stake.withdraw(unestake_id).await {
                 value = amount;
+                Ok(LiquidStakeEvent::SuccessfullWithdraw(amount))
             } else {
-                Err(LiquidError::InternalContractError("Could not withdraw".to_string()))
+                Err(LiquidError::InternalContractError(String::from("Could not withdraw")))
             }
         },
     };

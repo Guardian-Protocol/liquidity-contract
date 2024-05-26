@@ -24,7 +24,7 @@ pub mod store_io;
 
 pub type TransactionId = u64;
 pub type UnestakeId = u128;
-pub type StoreId = u64;
+pub type StoreId = usize;
 
 pub type Gvara = u128;
 pub type Vara = u128;

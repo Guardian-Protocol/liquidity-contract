@@ -24,6 +24,7 @@ pub enum StoreAction {
         liberation_era: u64,
         liberation_days: u64,
     },
+    DeleteUnestake(u128),
     FetchUnestake {
         user: ActorId,
         unestake_id: UnestakeId,
