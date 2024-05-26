@@ -12,6 +12,7 @@ pub mod contract;
 pub mod handler;
 pub mod ft_contract;
 pub mod state;
+pub mod store_contract;
 
 static mut LIQUID_STAKE: Option<LiquidStake> = None;
 static mut SECURED_INFORMATION: Option<SecuredInformation> = None;
@@ -41,6 +42,9 @@ extern "C" fn init() {
     unsafe {
         SECURED_INFORMATION = Some(SecuredInformation {
             gvara_token_address: init_config.gvara_contract_address.clone(),
+            users: HashMap::new(),
+            store_contracts: vec![init_config.stash_account_address.clone()],
+            treasure_account: init_config.treasure_account.clone(),
         });
     }
 

@@ -1,17 +1,16 @@
-use gstd::{ActorId, Decode, Encode, TypeInfo, Vec};
-
-use crate::{TransactionHistory, Unestake, Vara};
+use gstd::{
+    ActorId, 
+    Decode, 
+    Encode, 
+    TypeInfo
+};
 
 #[derive(TypeInfo, Encode, Decode)]
 pub enum LiquidityQuery {
-    GetUserVaraLocked(ActorId),
-    GetTransactionHistory(ActorId),
-    GetUnestakeHistory(ActorId),
+    GetUserStore(ActorId),
 }
 
 #[derive(TypeInfo, Encode, Decode)]
 pub enum LiquidityResponse {
-    UserVaraLocked(Vara),
-    TransactionHistory(Vec<TransactionHistory>),
-    UnestakeHistory(Vec<Unestake>),
+    UserStore(ActorId),
 }
