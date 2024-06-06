@@ -1,5 +1,4 @@
-use gstd::{
-    format, 
+use gstd::{ 
     msg,  
     String
 };
@@ -11,39 +10,23 @@ use io::{
     LiquidError
 };
 
-use crate::{
-    contract::LiquidStake, 
-    liquid_stake_mut
-};
+use crate::secured_information;
 
 #[no_mangle]
 extern "C" fn state() {
     let query: LiquidityQuery = msg::load().expect("Unable to decode message");
-    let liquid_stake: &mut LiquidStake = liquid_stake_mut();
+    let sec_information = secured_information();
 
     let result = match query {
-        LiquidityQuery::GetUserVaraLocked(source) => {
-            if let Some(user) = liquid_stake.users.get(&source) {
-                let locked_balance = user.user_total_vara_staked;
-                Ok(LiquidityResponse::UserVaraLocked(locked_balance.clone()))
+        LiquidityQuery::GetUserStore(actor_id) => {
+            if let Some(store_id) = sec_information.users.get(&actor_id) {
+                if let Some(store) = sec_information.store_contracts.get(*store_id) {
+                    Ok(LiquidityResponse::UserStore(store.address.clone()))
+                } else {
+                    Err(LiquidError::StoreNotAvailable(String::from("Store not found")))
+                }
             } else {
-                Err(LiquidError::UserNotFound(String::from(format!("User not found {:?}", &source))))
-            }
-        }
-        LiquidityQuery::GetTransactionHistory(source) => {
-            if let Some(user) = liquid_stake.users.get(&source) {
-                let transaction_history = user.transaction_history.clone();
-                Ok(LiquidityResponse::TransactionHistory(transaction_history.clone()))
-            } else {
-                Err(LiquidError::UserNotFound(String::from(format!("User not found {:?}", &source))))
-            }
-        },
-        LiquidityQuery::GetUnestakeHistory(source) => {
-            if let Some(user) = liquid_stake.users.get(&source) {
-                let unestake_history = user.unestake_history.clone();
-                Ok(LiquidityResponse::UnestakeHistory(unestake_history.clone()))
-            } else {
-                Err(LiquidError::UserNotFound(String::from(format!("User not found {:?}", &source))))
+                Err(LiquidError::StoreNotAvailable(String::from("User does not have a store")))
             }
         }
     };
