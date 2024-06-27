@@ -22,6 +22,14 @@ async fn main() {
                 Err(LiquidError::InternalContractError(String::from("Could not withdraw")))
             }
         },
+        LiquidStakeAction::ContractBalance => {
+            if liquid_stake.owner == msg::source() {
+                value = liquid_stake.varatoken_total_staked;
+                Ok(LiquidStakeEvent::TotalLocketBalance { total: liquid_stake.varatoken_total_staked })
+            } else {
+                Err(LiquidError::UserNotFound(String::from("User not found")))
+            }
+        }
     };
 
     let _ = msg::reply(result, value);

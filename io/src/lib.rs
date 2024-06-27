@@ -38,6 +38,7 @@ pub enum LiquidStakeAction {
         liberation_days: u64,
     },
     Withdraw(UnestakeId),
+    ContractBalance,
 }
 
 #[derive(Encode, Decode, TypeInfo)]
