@@ -30,7 +30,7 @@ impl LiquidStake {
             return Err(err);
         }
 
-        if let Err(err) = ft_calls::transfer(amount, msg::source(), exec::program_id()).await {
+        if let Err(err) = ft_calls::transfer(amount, exec::program_id(), msg::source()).await {
             return Err(err);
         }
 
@@ -62,8 +62,12 @@ impl LiquidStake {
         }
     }
 
-    pub async fn withdraw(&mut self, unestake_id: UnestakeId) -> Result<LiquidStakeEvent, LiquidError> {
+    pub async fn withdraw(&mut self, unestake_id: UnestakeId, actual_era: u64) -> Result<LiquidStakeEvent, LiquidError> {
         if let Ok(StoreResponse::Unestake { unestake }) = store_calls::fetch_unestake(unestake_id).await {
+            if unestake.liberation_era > actual_era {
+                return Err(LiquidError::WithdrawIsNotReady("withdraw is not ready".to_string()));
+            }
+
             if let Err(_) = store_calls::delete_unestake(unestake_id).await {
                 return Err(LiquidError::InternalStoreError("store unavailable".to_string()));
             }

@@ -41,6 +41,10 @@ pub enum FTAction {
 #[scale_info(crate = gstd::scale_info)]
 pub enum FTEvent {
     Initialized,
+    Minted {
+        to: ActorId,
+        amount: u128,
+    },
     TransferredToUsers {
         from: ActorId,
         to_users: Vec<ActorId>,

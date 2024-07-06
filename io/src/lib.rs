@@ -37,7 +37,10 @@ pub enum LiquidStakeAction {
         liberation_era: u64,
         liberation_days: u64,
     },
-    Withdraw(UnestakeId),
+    Withdraw(
+        UnestakeId,
+        u64
+    ),
     ContractBalance,
 }
 
@@ -69,6 +72,7 @@ pub enum LiquidError {
     InternalContractError(String),
     InternalStoreError(String),
     StoreNotAvailable(String),
+    ProgramInitializationFailedWithContext(String),
 }
 
 #[derive(TypeInfo, Encode, Decode)]

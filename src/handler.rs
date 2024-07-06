@@ -14,8 +14,8 @@ async fn main() {
         LiquidStakeAction::Unestake { amount, liberation_era, liberation_days } => {
             liquid_stake.unestake(amount, liberation_era, liberation_days).await
         },
-        LiquidStakeAction::Withdraw(unestake_id) => {
-            if let Ok(LiquidStakeEvent::SuccessfullWithdraw(amount)) = liquid_stake.withdraw(unestake_id).await {
+        LiquidStakeAction::Withdraw(unestake_id, actual_era) => {
+            if let Ok(LiquidStakeEvent::SuccessfullWithdraw(amount)) = liquid_stake.withdraw(unestake_id, actual_era).await {
                 value = amount;
                 Ok(LiquidStakeEvent::SuccessfullWithdraw(amount))
             } else {
