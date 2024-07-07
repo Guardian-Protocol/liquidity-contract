@@ -3,7 +3,8 @@ use gstd::{
     Decode, 
     Encode, 
     String, 
-    TypeInfo
+    TypeInfo, 
+    Vec
 };
 
 use crate::{
@@ -51,6 +52,11 @@ pub enum StoreError {
     InssuficientBalance,
     NotAdmin,
     StoreNotAvailable
+}
+
+#[derive(TypeInfo, Encode, Decode)]
+pub struct InitStore {
+    pub admins: Vec<ActorId>,
 }
 
 #[derive(TypeInfo, Encode, Decode, Clone)]

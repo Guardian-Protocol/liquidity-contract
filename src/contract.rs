@@ -26,6 +26,11 @@ pub struct LiquidStake {
 
 impl LiquidStake {
     pub async fn stake(&mut self, amount: Gvara) -> Result<LiquidStakeEvent, LiquidError> {
+
+        if msg::value() < amount {
+            return Err(LiquidError::StakeError("insufficient funds".to_string()));
+        }
+
         if let Err(err) = self.add_liquidity(&amount).await {
             return Err(err);
         }
@@ -33,6 +38,8 @@ impl LiquidStake {
         if let Err(err) = ft_calls::transfer(amount, exec::program_id(), msg::source()).await {
             return Err(err);
         }
+
+        let _ = msg::send(secured_information().stash_account, "staking value", msg::value());
 
         return Ok(LiquidStakeEvent::Success)
     }

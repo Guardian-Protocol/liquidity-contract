@@ -8,7 +8,8 @@ use gstd::{
     collections::HashMap, 
     prelude::*, 
     ActorId, 
-    Decode, 
+    CodeId, 
+    Decode,
     Encode, 
     TypeInfo, 
     Vec
@@ -78,8 +79,9 @@ pub enum LiquidError {
 #[derive(TypeInfo, Encode, Decode)]
 pub struct InitLiquidityCotract {
     pub gvara_contract_address: ActorId,
-    pub store_contract_address: Store,
+    pub store_contract_code_id: CodeId,
     pub treasure_account: ActorId,
+    pub stash_account: ActorId,
 }
 
 #[derive(TypeInfo, Clone, Encode, Decode)]
@@ -91,8 +93,10 @@ pub struct Store {
 pub struct SecuredInformation {
     pub gvara_token_address: ActorId,
     pub users: HashMap<ActorId, StoreId>,
+    pub store_contract_code: CodeId,
     pub store_contracts: Vec<Store>,
     pub treasure_account: ActorId,
+    pub stash_account: ActorId
 }
 
 pub struct ContractMetadata;
