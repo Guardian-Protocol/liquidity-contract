@@ -7,8 +7,7 @@ use gmeta::{
 use gstd::{
     collections::HashMap, 
     prelude::*, 
-    ActorId, 
-    CodeId, 
+    ActorId,
     Decode,
     Encode, 
     TypeInfo, 
@@ -79,7 +78,7 @@ pub enum LiquidError {
 #[derive(TypeInfo, Encode, Decode)]
 pub struct InitLiquidityCotract {
     pub gvara_contract_address: ActorId,
-    pub store_contract_code_id: CodeId,
+    pub store_contract_address: ActorId,
     pub treasure_account: ActorId,
     pub stash_account: ActorId,
 }
@@ -93,7 +92,6 @@ pub struct Store {
 pub struct SecuredInformation {
     pub gvara_token_address: ActorId,
     pub users: HashMap<ActorId, StoreId>,
-    pub store_contract_code: CodeId,
     pub store_contracts: Vec<Store>,
     pub treasure_account: ActorId,
     pub stash_account: ActorId

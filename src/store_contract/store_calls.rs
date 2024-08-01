@@ -48,7 +48,7 @@ pub async fn store_unestake(amount: Vara, liberation_era: u64, liberation_days: 
 
 pub async fn delete_unestake(unestake_id: UnestakeId) -> Result<StoreResponse, StoreError> {
     if let Some(store_id) = secured_information().users.get(&msg::source()) {
-        let payload: StoreAction = StoreAction::DeleteUnestake(unestake_id);
+        let payload: StoreAction = StoreAction::DeleteUnestake(unestake_id, msg::source());
     
         return msg::send_for_reply_as::<StoreAction, Result<StoreResponse, StoreError>>(
             secured_information().store_contracts.get(*store_id as usize).expect("Store not found").address.clone(), 

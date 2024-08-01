@@ -28,7 +28,7 @@ impl LiquidStake {
     pub async fn stake(&mut self, amount: Gvara) -> Result<LiquidStakeEvent, LiquidError> {
 
         if msg::value() < amount {
-            return Err(LiquidError::StakeError("insufficient funds".to_string()));
+            return Err(LiquidError::InternalContractError("insufficient funds".to_string()));
         }
 
         if let Err(err) = self.add_liquidity(&amount).await {

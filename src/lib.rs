@@ -1,13 +1,12 @@
 #![no_std]
 use core::panic;
-use gclient::ext::sp_runtime::traits::Clear;
 use gstd::{
-    collections::HashMap, exec, msg, prog::ProgramGenerator, vec
+    collections::HashMap, msg, vec
 };
 
 use contract::LiquidStake;
 use io::{
-    store_io::InitStore, InitLiquidityCotract, SecuredInformation, Store
+    InitLiquidityCotract, SecuredInformation, Store
 };
 
 pub mod contract;
@@ -31,37 +30,23 @@ fn secured_information() -> &'static mut SecuredInformation {
 extern "C" fn init() {
     let init_config: InitLiquidityCotract = msg::load().expect("Unable to decode message");
 
-    if init_config.gvara_contract_address.is_zero() || init_config.store_contract_code_id.is_clear() {
+    if init_config.gvara_contract_address.is_zero() || init_config.store_contract_address.is_zero() {
         panic!("Invalid address");
     }
-
-    let store_contract_address = ProgramGenerator::create_program(
-        init_config.store_contract_code_id, 
-        InitStore {
-            admins: vec![
-                exec::program_id(), 
-                msg::source()
-            ]
-        }, 
-        0
-    );
 
     let liquid_stake = LiquidStake {
         owner: msg::source(),
         ..Default::default()
     };
 
-    let store = Store {
-        address: store_contract_address.clone(),
-        is_full: false
-    };
-
     unsafe {
         SECURED_INFORMATION = Some(SecuredInformation {
             gvara_token_address: init_config.gvara_contract_address.clone(),
             users: HashMap::new(),
-            store_contract_code: init_config.store_contract_code_id.clone(),
-            store_contracts: vec![store.clone()],
+            store_contracts: vec![Store {
+                address: init_config.store_contract_address.clone(),
+                is_full: false
+            }],
             treasure_account: init_config.treasure_account.clone(),
             stash_account: init_config.stash_account.clone()
         });
